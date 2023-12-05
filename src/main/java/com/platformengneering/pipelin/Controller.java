@@ -6,8 +6,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/telepresence")
 public class Controller {
+	@Value("${url}")
+	private String url;
 @GetMapping("/test")
 public String hello() {
+	System.out.println(url);
 	return "hello world";
 }
 }
