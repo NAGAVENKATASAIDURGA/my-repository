@@ -44,11 +44,13 @@
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 
 		</dependency>
-		 <dependency>
-        <groupId>org.hibernate</groupId>
-        <artifactId>hibernate-types-52</artifactId>
-        <version>2.13.2</version> <!-- Use the latest version -->
-    </dependency>
+		<!-- https://mvnrepository.com/artifact/com.vladmihalcea/hibernate-types-52 -->
+<dependency>
+    <groupId>com.vladmihalcea</groupId>
+    <artifactId>hibernate-types-52</artifactId>
+    <version>2.21.1</version>
+</dependency>
+
 		<dependency>
 			<groupId>com.googlecode.json-simple</groupId>
 			<artifactId>json-simple</artifactId>

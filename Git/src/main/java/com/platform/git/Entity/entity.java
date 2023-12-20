@@ -1,4 +1,4 @@
-package Entity;
+package com.platform.git.Entity;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
