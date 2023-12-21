@@ -31,16 +31,21 @@ public class Controller {
 public Object createRepo(@RequestHeader(name="Authorization") String token,@RequestBody JsonNode data) {
 	return  service.createRepo(data,token);
 }
+@PostMapping("/createBranch")
+public Object createBranch(@RequestHeader(name="Authorization") String token,@RequestBody JsonNode data) {
+	return service.createBranch(data, token);
+}
 //display list of users
 @GetMapping("/get")
 public ResponseEntity<List> get(@RequestHeader(name="Authorization") String token) {
 	return  service.get(token);
 }
 @DeleteMapping("/deleteRepo")
-public Object deleteRepo(@RequestBody JsonNode data,@RequestHeader(name="Authorization") String token) {
+public Object deleteRepo(@RequestBody JsonNode data,@RequestHeader(name="Authorization") String token) throws JsonMappingException, JsonProcessingException {
 	return service.deleteRepo(data,token);
 }
 //need to check
+/*
 @PatchMapping("/updateVisibility")
 public Object updateVisibility(@RequestBody JsonNode body,@RequestHeader(name="Authorization") String token) {
 	return service.updateVisibility(body, token);

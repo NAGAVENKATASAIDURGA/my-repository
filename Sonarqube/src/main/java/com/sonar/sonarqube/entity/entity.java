@@ -29,8 +29,8 @@ public void setId(int id) {
 public JSONObject getJsonField() {
 	return jsonField;
 }
-public void setJsonField(MultiValueMap<String, String> formData) {
-	this.jsonField = (JSONObject) formData;
+public void setJsonField(JSONObject json) {
+	this.jsonField = (JSONObject) json;
 }
 
 }

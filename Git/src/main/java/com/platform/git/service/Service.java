@@ -16,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.git.Entity.entity;
 import com.platform.git.Repository.repository;
 
@@ -50,17 +51,20 @@ public class Service {
 		jsonObj.put("name", data.get("name").asText());
 		jsonObj.put("private", data.get("name").asText());
 		System.out.println(jsonObj);
-		
+		entity en=new entity();
 	ResponseEntity<Object> entity=restTemplate.exchange(giturl+"/api/v4/projects", HttpMethod.POST, new HttpEntity<>(jsonObj, header),Object.class);
 	if(entity.getStatusCode().is2xxSuccessful()) {
-		entity en=new entity();
-		en.setJsonField(jsonObj);
+		
+		en.setType("repo");
+		en.setReponame(data.get("name").asText());
+		en.setRepourl(giturl+"/gitlab/root"+data.get("name").asText());
 		repo.save(en);
 		json.put("context", "create a repo in git");
 		json.put("status", "success");
 		json.put("message", "repo created successfully");
 	}
 	else {
+		
 		json.put("context", "create a repo in git");
 		json.put("status", "failed");
 		json.put("message", "unable to create repo");
@@ -69,29 +73,64 @@ public class Service {
 	}
 
 //done
-	public ResponseEntity<List> get(String token) {
-		json.clear();
-		String newtoken = token.replaceAll("Bearer ", "");
-		HttpHeaders header = new HttpHeaders();
-		header.setBearerAuth(newtoken);
 	
-		ResponseEntity<List> entity=restTemplate.exchange(giturl+"/api/v4/projects", HttpMethod.GET, new HttpEntity<>(header), List.class);
-		
-		return entity;
+public Object createBranch(JsonNode body,String token) {
+	json.clear();
+	String newtoken = token.replaceAll("Bearer ", "");
+	HttpHeaders header = new HttpHeaders();
+	header.setBearerAuth(newtoken);
+	JSONObject json = new JSONObject();
+	json.put("branch", body.get("branch").asText());
+	json.put("ref", body.get("ref").asText());
+	entity en=new entity();
+	ResponseEntity<Object> entity=restTemplate.exchange(
+			giturl+"api/v4/projects/"+body.get("id").asText()+"/repository/branches",
+			HttpMethod.POST, new HttpEntity<>(json,header), Object.class);
+	if(entity.getStatusCode().is2xxSuccessful()) {
+		en.setType("branch");
+		en.setReponame(body.get("branch").asText());
+		json.put("context", "delete a repo in git");
+		json.put("status", "success");
+		json.put("message", "repo deleted successfully");
 	}
+	else {
+		json.put("context", "delete a repo in git");
+		json.put("status", "failed");
+		json.put("message", "unable to delete repo");
+	}
+	return json;
+}
+public String getByName(String name) {
+	return repo.findByRepoName(name);
+}
+public String getById(int id,String token) throws JsonMappingException, JsonProcessingException {
+	json.clear();
+	HttpHeaders header = new HttpHeaders();
+	String newtoken = token.replaceAll("Bearer ", "");
+	header.setBearerAuth(newtoken);
 
+
+	ResponseEntity<Object> entity=restTemplate.exchange(
+			giturl+"/api/v4/projects/"+id ,
+			HttpMethod.GET, new HttpEntity<>(header), Object.class);
+	ObjectMapper mapper = new ObjectMapper();
+	JsonNode root = null;
+	root=mapper.readTree(entity.toString());
+	return root.get("name").asText();
+}
 //delete a repository
 //done
-	public Object deleteRepo(JsonNode body, String token) {
+	public Object deleteRepo(JsonNode body, String token) throws JsonMappingException, JsonProcessingException {
 		json.clear();
 		String newtoken = token.replaceAll("Bearer ", "");
 		HttpHeaders header = new HttpHeaders();
 		header.setBearerAuth(newtoken);
-
+       String name=getById(body.get("id").asInt(),newtoken);
 		ResponseEntity<Object> entity=restTemplate.exchange(
 				giturl+"/api/v4/projects/" + body.get("id").asText(),
 				HttpMethod.DELETE, new HttpEntity<>(header), Object.class);
 		if(entity.getStatusCode().is2xxSuccessful()) {
+		repo.deleteByJsonbParameter(name);
 			json.put("context", "delete a repo in git");
 			json.put("status", "success");
 			json.put("message", "repo deleted successfully");
@@ -103,12 +142,26 @@ public class Service {
 		}
 		return json;
 	}
-
+	public ResponseEntity<List> get(String token) {
+		json.clear();
+		String newtoken = token.replaceAll("Bearer ", "");
+		HttpHeaders header = new HttpHeaders();
+		header.setBearerAuth(newtoken);
+	
+		ResponseEntity<List> entity=restTemplate.exchange(giturl+"/api/v4/projects", HttpMethod.GET, new HttpEntity<>(header), List.class);
+		
+		return entity;
+	}
+	
+	
+	
+	//commented all other code need for readability purpose need to uncomment it
 //create a Team
 //done
 	
 //update visibility of a repository
 //done
+	/*
 	public Object updateVisibility(JsonNode body, String token) {
 		json.clear();
 		HttpHeaders header = new HttpHeaders();

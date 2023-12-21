@@ -68,7 +68,12 @@ public class Service {
 		ResponseEntity<Object> entity=restTemplate.exchange(sonarurl+"/"+"api/projects/create", HttpMethod.POST,
 				new HttpEntity<>(formData, header), Object.class);
 		if(entity.getStatusCode().is2xxSuccessful()) {
-			en.setJsonField(formData);
+			JSONObject json=new JSONObject();
+			json.put("project", body.get("key").asText());
+			
+			json.put("name",  body.get("name").asText());
+			json.put("visibility", body.get("visibility").asText());
+			en.setJsonField(json);
 			repo.save(en);
 			json.put("context", "create a project in sonarqube");
 			json.put("status", "success");
