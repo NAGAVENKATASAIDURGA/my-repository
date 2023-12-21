@@ -1,4 +1,4 @@
-package com.platform.git.Entity;
+package com.sonar.sonarqube.entity;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -9,9 +9,10 @@ import javax.persistence.Table;
 
 import org.hibernate.annotations.Type;
 import org.json.simple.JSONObject;
+import org.springframework.util.MultiValueMap;
 
 @Entity
-@Table(name="git")
+@Table(name="sonar")
 public class entity {
 @Id
 @GeneratedValue(strategy=GenerationType.IDENTITY)
@@ -28,8 +29,8 @@ public void setId(int id) {
 public JSONObject getJsonField() {
 	return jsonField;
 }
-public void setJsonField(JSONObject jsonObj) {
-	this.jsonField = jsonObj;
+public void setJsonField(MultiValueMap<String, String> formData) {
+	this.jsonField = (JSONObject) formData;
 }
 
 }
