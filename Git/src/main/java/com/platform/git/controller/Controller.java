@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-
+import com.platform.git.Entity.entity;
 import com.platform.git.service.Service;
 
 
@@ -31,18 +31,16 @@ public class Controller {
 public Object createRepo(@RequestHeader(name="Authorization") String token,@RequestBody JsonNode data) {
 	return  service.createRepo(data,token);
 }
-@PostMapping("/createBranch")
-public Object createBranch(@RequestHeader(name="Authorization") String token,@RequestBody JsonNode data) {
-	return service.createBranch(data, token);
+
+@GetMapping("/findByRepoName")
+public String findByRepoName(@RequestBody String name) {
+	return service.getByName(name);
 }
 //display list of users
-@GetMapping("/get")
-public ResponseEntity<List> get(@RequestHeader(name="Authorization") String token) {
-	return  service.get(token);
-}
-@DeleteMapping("/deleteRepo")
-public Object deleteRepo(@RequestBody JsonNode data,@RequestHeader(name="Authorization") String token) throws JsonMappingException, JsonProcessingException {
-	return service.deleteRepo(data,token);
+
+@PostMapping("/createUser")
+public Object createUser(@RequestBody JsonNode body,@RequestHeader(name="Authorization") String token) {
+	return service.createUser(body, token);
 }
 //need to check
 /*
@@ -50,10 +48,19 @@ public Object deleteRepo(@RequestBody JsonNode data,@RequestHeader(name="Authori
 public Object updateVisibility(@RequestBody JsonNode body,@RequestHeader(name="Authorization") String token) {
 	return service.updateVisibility(body, token);
 }
-@PostMapping("/createUser")
-public Object createUser(@RequestBody JsonNode body,@RequestHeader(name="Authorization") String token) {
-	return service.createUser(body, token);
+@PostMapping("/createBranch")
+public Object createBranch(@RequestHeader(name="Authorization") String token,@RequestBody JsonNode data) {
+	return service.createBranch(data, token);
 }
+@DeleteMapping("/deleteRepo")
+public Object deleteRepo(@RequestBody JsonNode data,@RequestHeader(name="Authorization") String token) throws JsonMappingException, JsonProcessingException {
+	return service.deleteRepo(data,token);
+}
+@GetMapping("/get")
+public ResponseEntity<List> get(@RequestHeader(name="Authorization") String token) {
+	return  service.get(token);
+}
+
 @DeleteMapping("/deleteUser")
 public Object deleteUser(@RequestBody JsonNode body,@RequestHeader(name="Authorization") String token) {
 	return service.deleteUser(body, token);

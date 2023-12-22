@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -18,7 +19,9 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.git.Entity.entity;
+import com.platform.git.Entity.users;
 import com.platform.git.Repository.repository;
+import com.platform.git.Repository.userRepo;
 
 
 
@@ -32,12 +35,17 @@ public class Service {
 	
 	@Autowired
 	repository repo;
-	
+	@Autowired
+	userRepo urepo;
 	
 	@Value("${giturl}")
 	String giturl;
-
-	
+    @Value("${jenkinsurl}")
+    private String jenkinsurl;
+    @Value("${jenkinsusername")
+    private String jenkinsusername;
+    @Value("${jenkinstoken}")
+    private String jenkinstoken;
 	JSONObject json=new JSONObject();
 //create a Repository
 //done
@@ -50,6 +58,7 @@ public class Service {
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put("name", data.get("name").asText());
 		jsonObj.put("private", data.get("name").asText());
+		
 		System.out.println(jsonObj);
 		entity en=new entity();
 	ResponseEntity<Object> entity=restTemplate.exchange(giturl+"/api/v4/projects", HttpMethod.POST, new HttpEntity<>(jsonObj, header),Object.class);
@@ -57,6 +66,7 @@ public class Service {
 		
 		en.setType("repo");
 		en.setReponame(data.get("name").asText());
+		en.setUsername(data.get("username").asText());
 		en.setRepourl(giturl+"/gitlab/root"+data.get("name").asText());
 		repo.save(en);
 		json.put("context", "create a repo in git");
@@ -72,87 +82,75 @@ public class Service {
 	return json;
 	}
 
-//done
-	
-public Object createBranch(JsonNode body,String token) {
-	json.clear();
-	String newtoken = token.replaceAll("Bearer ", "");
-	HttpHeaders header = new HttpHeaders();
-	header.setBearerAuth(newtoken);
-	JSONObject json = new JSONObject();
-	json.put("branch", body.get("branch").asText());
-	json.put("ref", body.get("ref").asText());
-	entity en=new entity();
-	ResponseEntity<Object> entity=restTemplate.exchange(
-			giturl+"api/v4/projects/"+body.get("id").asText()+"/repository/branches",
-			HttpMethod.POST, new HttpEntity<>(json,header), Object.class);
-	if(entity.getStatusCode().is2xxSuccessful()) {
-		en.setType("branch");
-		en.setReponame(body.get("branch").asText());
-		json.put("context", "delete a repo in git");
-		json.put("status", "success");
-		json.put("message", "repo deleted successfully");
-	}
-	else {
-		json.put("context", "delete a repo in git");
-		json.put("status", "failed");
-		json.put("message", "unable to delete repo");
-	}
-	return json;
-}
-public String getByName(String name) {
-	return repo.findByRepoName(name);
-}
-public String getById(int id,String token) throws JsonMappingException, JsonProcessingException {
-	json.clear();
-	HttpHeaders header = new HttpHeaders();
-	String newtoken = token.replaceAll("Bearer ", "");
-	header.setBearerAuth(newtoken);
-
-
-	ResponseEntity<Object> entity=restTemplate.exchange(
-			giturl+"/api/v4/projects/"+id ,
-			HttpMethod.GET, new HttpEntity<>(header), Object.class);
-	ObjectMapper mapper = new ObjectMapper();
-	JsonNode root = null;
-	root=mapper.readTree(entity.toString());
-	return root.get("name").asText();
-}
-//delete a repository
-//done
-	public Object deleteRepo(JsonNode body, String token) throws JsonMappingException, JsonProcessingException {
+	public Object createUser(JsonNode body, String token) {
 		json.clear();
-		String newtoken = token.replaceAll("Bearer ", "");
+		users u=new users();
 		HttpHeaders header = new HttpHeaders();
+		String newtoken = token.replaceAll("Bearer ", "");
 		header.setBearerAuth(newtoken);
-       String name=getById(body.get("id").asInt(),newtoken);
+		JSONObject json = new JSONObject();
+		json.put("username", body.get("username").asText());
+		json.put("email", body.get("email").asText());
+		json.put("password", body.get("password").asText());
+		json.put("name", body.get("name").asText());
 		ResponseEntity<Object> entity=restTemplate.exchange(
-				giturl+"/api/v4/projects/" + body.get("id").asText(),
-				HttpMethod.DELETE, new HttpEntity<>(header), Object.class);
+				giturl+"/api/v4/users" ,
+				HttpMethod.POST, new HttpEntity<>(json, header), Object.class);
 		if(entity.getStatusCode().is2xxSuccessful()) {
-		repo.deleteByJsonbParameter(name);
-			json.put("context", "delete a repo in git");
+			boolean b=setGlobalCredentials(body);
+			u.setUsername(body.get("username").asText());
+			u.setPassword( body.get("password").asText());
+			u.setEmail(body.get("email").asText());
+			u.setName(body.get("name").asText());
+
+			if(b) {
+				u.setConfigId("configid-"+u.getId());
+			}
+						
+			urepo.save(u);
+			json.put("context", "create a user in gitlab");
 			json.put("status", "success");
-			json.put("message", "repo deleted successfully");
+			json.put("message", "successfully user created in gitlab");
 		}
 		else {
-			json.put("context", "delete a repo in git");
+			json.put("context", "create a user in gitlab");
 			json.put("status", "failed");
-			json.put("message", "unable to delete repo");
+			json.put("message", "unable to create a user");
 		}
 		return json;
+	}	
+	public boolean setGlobalCredentials(JsonNode body) {
+		users u=new users();
+		HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(jenkinsusername, jenkinstoken);
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        JSONObject credentialRequest = new JSONObject();
+        credentialRequest.put("scope", "GLOBAL");
+        credentialRequest.put("id", "configid-"+u.getId());
+        credentialRequest.put("username", body.get("username").asText());
+        credentialRequest.put("password", body.get("password").asText());
+        credentialRequest.put("description", "setting config credentials for user"+body.get("username").asText());
+        credentialRequest.put("stapler-class", "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl");
+        credentialRequest.put("$class", "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl");
+        ResponseEntity<Object> entity=restTemplate.exchange(
+				jenkinsurl+"credentials/store/system/domain/_/createCredentials" ,
+				HttpMethod.POST, new HttpEntity<>(json, headers), Object.class);
+        if(entity.getStatusCode().is2xxSuccessful()) {
+        	return true;
+        
+        }
+        else {
+        	return false;
+        }
+        
 	}
-	public ResponseEntity<List> get(String token) {
-		json.clear();
-		String newtoken = token.replaceAll("Bearer ", "");
-		HttpHeaders header = new HttpHeaders();
-		header.setBearerAuth(newtoken);
-	
-		ResponseEntity<List> entity=restTemplate.exchange(giturl+"/api/v4/projects", HttpMethod.GET, new HttpEntity<>(header), List.class);
-		
-		return entity;
-	}
-	
+public  String getByName(String name) {
+	System.out.println(name);
+	System.out.println(repo.findByreponame(name));
+	return repo.findByreponame(name);
+}
+
+
 	
 	
 	//commented all other code need for readability purpose need to uncomment it
@@ -184,32 +182,85 @@ public String getById(int id,String token) throws JsonMappingException, JsonProc
 		}
 		return json;
 	}
-	
-	public Object createUser(JsonNode body, String token) {
+	public String getById(int id,String token) throws JsonMappingException, JsonProcessingException {
+	json.clear();
+	HttpHeaders header = new HttpHeaders();
+	String newtoken = token.replaceAll("Bearer ", "");
+	header.setBearerAuth(newtoken);
+
+
+	ResponseEntity<Object> entity=restTemplate.exchange(
+			giturl+"/api/v4/projects/"+id ,
+			HttpMethod.GET, new HttpEntity<>(header), Object.class);
+	ObjectMapper mapper = new ObjectMapper();
+	JsonNode root = null;
+	root=mapper.readTree(entity.toString());
+	return root.get("name").asText();
+}
+public ResponseEntity<List> get(String token) {
 		json.clear();
-		HttpHeaders header = new HttpHeaders();
 		String newtoken = token.replaceAll("Bearer ", "");
+		HttpHeaders header = new HttpHeaders();
 		header.setBearerAuth(newtoken);
-		JSONObject json = new JSONObject();
-		json.put("username", body.get("username").asText());
-		json.put("email", body.get("email").asText());
-		json.put("password", body.get("password").asText());
-		json.put("name", body.get("name").asText());
+	
+		ResponseEntity<List> entity=restTemplate.exchange(giturl+"/api/v4/projects", HttpMethod.GET, new HttpEntity<>(header), List.class);
+		
+		return entity;
+	}
+	
+	//delete a repository
+//done
+	public Object deleteRepo(JsonNode body, String token) throws JsonMappingException, JsonProcessingException {
+		json.clear();
+		String newtoken = token.replaceAll("Bearer ", "");
+		HttpHeaders header = new HttpHeaders();
+		header.setBearerAuth(newtoken);
+       String name=getById(body.get("id").asInt(),newtoken);
 		ResponseEntity<Object> entity=restTemplate.exchange(
-				giturl+"/api/v4/users" ,
-				HttpMethod.POST, new HttpEntity<>(json, header), Object.class);
+				giturl+"/api/v4/projects/" + body.get("id").asText(),
+				HttpMethod.DELETE, new HttpEntity<>(header), Object.class);
 		if(entity.getStatusCode().is2xxSuccessful()) {
-			json.put("context", "create a user in gitlab");
+	//	repo.deleteByJsonbParameter(name);
+			json.put("context", "delete a repo in git");
 			json.put("status", "success");
-			json.put("message", "successfully user created in gitlab");
+			json.put("message", "repo deleted successfully");
 		}
 		else {
-			json.put("context", "create a user in gitlab");
+			json.put("context", "delete a repo in git");
 			json.put("status", "failed");
-			json.put("message", "unable to create a user");
+			json.put("message", "unable to delete repo");
 		}
 		return json;
-	}	
+	}
+	//done
+	
+public Object createBranch(JsonNode body,String token) {
+	json.clear();
+	String newtoken = token.replaceAll("Bearer ", "");
+	HttpHeaders header = new HttpHeaders();
+	header.setBearerAuth(newtoken);
+	JSONObject json = new JSONObject();
+	json.put("branch", body.get("branch").asText());
+	json.put("ref", body.get("ref").asText());
+	entity en=new entity();
+	ResponseEntity<Object> entity=restTemplate.exchange(
+			giturl+"api/v4/projects/"+body.get("id").asText()+"/repository/branches",
+			HttpMethod.POST, new HttpEntity<>(json,header), Object.class);
+	if(entity.getStatusCode().is2xxSuccessful()) {
+		en.setType("branch");
+		en.setReponame(body.get("branch").asText());
+		json.put("context", "delete a repo in git");
+		json.put("status", "success");
+		json.put("message", "repo deleted successfully");
+	}
+	else {
+		json.put("context", "delete a repo in git");
+		json.put("status", "failed");
+		json.put("message", "unable to delete repo");
+	}
+	return json;
+}
+	
 	public Object deleteUser(JsonNode body, String token) {
 		json.clear();
 		String newtoken = token.replaceAll("Bearer ", "");

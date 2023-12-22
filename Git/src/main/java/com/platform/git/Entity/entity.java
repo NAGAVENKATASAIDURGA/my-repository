@@ -22,6 +22,7 @@ private int id;
 private String reponame;
 private String type;
 private String repourl;
+String username;
 public int getId() {
 	return id;
 }
@@ -46,6 +47,12 @@ public String getRepourl() {
 }
 public void setRepourl(String repourl) {
 	this.repourl = repourl;
+}
+public String getUsername() {
+	return username;
+}
+public void setUsername(String username) {
+	this.username = username;
 }
 
  
